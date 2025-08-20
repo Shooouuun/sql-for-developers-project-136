@@ -74,3 +74,47 @@ CREATE TABLE users (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
+
+-- Таблица подписок пользователей на программы
+CREATE TABLE enrollments (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    program_id BIGINT NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
+    status TEXT NOT NULL CHECK (status IN ('active', 'pending', 'cancelled', 'completed')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- Таблица оплат
+CREATE TABLE payments (
+    id BIGSERIAL PRIMARY KEY,
+    enrollment_id BIGINT NOT NULL REFERENCES enrollments(id) ON DELETE CASCADE,
+    amount NUMERIC(10,2) NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('pending', 'paid', 'failed', 'refunded')),
+    paid_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- Таблица прогресса пользователя по программам
+CREATE TABLE program_completions (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    program_id BIGINT NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
+    status TEXT NOT NULL CHECK (status IN ('active', 'completed', 'pending', 'cancelled')),
+    started_at TIMESTAMP WITH TIME ZONE,
+    finished_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- Таблица сертификатов
+CREATE TABLE certificates (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    program_id BIGINT NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
+    certificate_url TEXT NOT NULL,
+    issued_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
