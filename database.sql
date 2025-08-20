@@ -1,162 +1,155 @@
--- Courses
-CREATE TABLE courses (
-    id BIGSERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
+DROP TABLE  IF EXISTS
+    courses, lessons, modules, programs, course_modules, program_modules,
+    teaching_groups, users,
+    enrollments,
+    payments, program_completions, certificates,
+    quizzes, exercises, discussions, blogs
+CASCADE;
+
+
+CREATE TABLE courses(
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    title VARCHAR(255) NOT NULL,
     description TEXT,
-    deleted_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
 );
 
--- Modules
-CREATE TABLE modules (
-    id BIGSERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
+CREATE TABLE lessons(
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    course_id BIGINT REFERENCES courses (id) ON DELETE SET NULL,
+    title VARCHAR(255) NOT NULL,
+    content TEXT,
+    video_url VARCHAR(255),
+    position SMALLINT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
+);
+
+CREATE TABLE modules(
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    title VARCHAR(255) NOT NULL,
     description TEXT,
-    deleted_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
 );
 
--- Programs
-CREATE TABLE programs (
-    id BIGSERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    price NUMERIC(10,2),
-    program_type TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE programs(
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    name VARCHAR(255) NOT NULL,
+    price NUMERIC(10, 2),
+    program_type VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Lessons
-CREATE TABLE lessons (
-    id BIGSERIAL PRIMARY KEY,
-    course_id BIGINT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    content TEXT NOT NULL,
-    video_url TEXT,
-    position INT NOT NULL,
-    deleted_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE course_modules (
+    course_id BIGINT REFERENCES courses(id) ON DELETE CASCADE,
+    module_id BIGINT REFERENCES modules(id) ON DELETE CASCADE,
+    PRIMARY KEY (module_id, course_id)
 );
 
--- Связь программ и модулей
 CREATE TABLE program_modules (
-    program_id BIGINT NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
-    module_id BIGINT NOT NULL REFERENCES modules(id) ON DELETE CASCADE,
+    program_id BIGINT REFERENCES programs(id) ON DELETE CASCADE,
+    module_id BIGINT REFERENCES modules(id) ON DELETE CASCADE,
     PRIMARY KEY (program_id, module_id)
 );
 
--- Связь курсов и модулей
-CREATE TABLE course_modules (
-    course_id BIGINT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
-    module_id BIGINT NOT NULL REFERENCES modules(id) ON DELETE CASCADE,
-    PRIMARY KEY (course_id, module_id)
+CREATE TABLE teaching_groups(
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    slug VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- TeachingGroups
-CREATE TABLE teaching_groups (
-    id BIGSERIAL PRIMARY KEY,
-    slug TEXT NOT NULL UNIQUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- Users
-CREATE TABLE users (
-    id BIGSERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    role TEXT NOT NULL CHECK (role IN ('student', 'teacher', 'admin')),
+CREATE TABLE users(
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255),
+    role VARCHAR(10) CHECK (role IN ('Student', 'Teacher', 'Admin')) NOT NULL,
     teaching_group_id BIGINT REFERENCES teaching_groups(id) ON DELETE SET NULL,
-    deleted_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
 );
 
--- Enrollments
-CREATE TABLE enrollments (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    program_id BIGINT NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
-    status TEXT NOT NULL CHECK (status IN ('active', 'pending', 'cancelled', 'completed')),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE enrollments(
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    program_id BIGINT REFERENCES programs(id) ON DELETE SET NULL,
+    status VARCHAR(20) CHECK (status IN ('active', 'pending', 'cancelled', 'completed')) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Payments
-CREATE TABLE payments (
-    id BIGSERIAL PRIMARY KEY,
-    enrollment_id BIGINT NOT NULL REFERENCES enrollments(id) ON DELETE CASCADE,
-    amount NUMERIC(10,2) NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('pending', 'paid', 'failed', 'refunded')),
-    paid_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE payments(
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    enrollment_id BIGINT REFERENCES enrollments(id) ON DELETE SET NULL,
+    amount NUMERIC(10, 2),
+    status VARCHAR(20) CHECK (status IN ('pending', 'paid', 'failed', 'refunded')) NOT NULL,
+    paid_at DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ProgramCompletions
-CREATE TABLE program_completions (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    program_id BIGINT NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
-    status TEXT NOT NULL CHECK (status IN ('active', 'completed', 'pending', 'cancelled')),
-    started_at TIMESTAMPTZ,
-    completed_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE program_completions(
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    program_id BIGINT REFERENCES programs(id) ON DELETE SET NULL,
+    status VARCHAR(20) CHECK (status IN ('active', 'completed', 'pending', 'cancelled')) NOT NULL,
+    started_at DATE,
+    completed_at DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Certificates
-CREATE TABLE certificates (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    program_id BIGINT NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
-    url TEXT NOT NULL,
-    issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE certificates(
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    program_id BIGINT REFERENCES programs(id) ON DELETE SET NULL,
+    url VARCHAR(255),
+    issued_at DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Quizzes
-CREATE TABLE quizzes (
-    id BIGSERIAL PRIMARY KEY,
-    lesson_id BIGINT NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    content JSONB NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE quizzes(
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    lesson_id BIGINT REFERENCES lessons (id) ON DELETE SET NULL,
+    title VARCHAR(255),
+    content JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Exercises
-CREATE TABLE exercises (
-    id BIGSERIAL PRIMARY KEY,
-    lesson_id BIGINT NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    url TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE exercises(
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    lesson_id BIGINT REFERENCES lessons (id) ON DELETE SET NULL,
+    name VARCHAR(255),
+    url VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Discussions
-CREATE TABLE discussions (
-    id BIGSERIAL PRIMARY KEY,
-    lesson_id BIGINT NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    text TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE discussions(
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    lesson_id BIGINT REFERENCES lessons (id) ON DELETE SET NULL,
+    user_id BIGINT REFERENCES users (id) ON DELETE SET NULL,
+    text JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Blogs
-CREATE TABLE blogs (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    content TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('created', 'in moderation', 'published', 'archived')),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE blogs(
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id BIGINT REFERENCES users (id) ON DELETE SET NULL,
+    title VARCHAR(255) NOT NULL,
+    content TEXT,
+    status VARCHAR(20) CHECK (status IN ('created', 'in moderation', 'published', 'archived')) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
