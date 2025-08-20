@@ -54,3 +54,23 @@ CREATE TABLE programs_modules (
     module_id BIGINT NOT NULL REFERENCES modules(id) ON DELETE CASCADE,
     PRIMARY KEY (program_id, module_id)
 );
+
+-- Таблица учебных групп
+CREATE TABLE teaching_groups (
+    id BIGSERIAL PRIMARY KEY,
+    slug TEXT NOT NULL UNIQUE, -- человекочитаемый идентификатор группы
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- Таблица пользователей
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY,
+    username TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('student', 'teacher', 'admin')), -- роли пользователей
+    teaching_group_id BIGINT NOT NULL REFERENCES teaching_groups(id) ON DELETE RESTRICT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
