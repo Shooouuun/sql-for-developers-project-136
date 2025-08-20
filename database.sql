@@ -140,12 +140,11 @@ CREATE TABLE exercises (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 15. Обсуждения
+-- 15. Обсуждения-- 15. Обсуждения
 CREATE TABLE discussions (
     id BIGSERIAL PRIMARY KEY,
     lesson_id BIGINT NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    parent_id BIGINT REFERENCES discussions(id) ON DELETE CASCADE,
     text TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
